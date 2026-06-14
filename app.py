@@ -2,6 +2,8 @@ import streamlit as st
 from Bio.Seq import Seq
 from Bio.SeqUtils import gc_fraction
 import matplotlib.pyplot as plt
+from Bio import SeqIO
+import io
 
 # Page config
 st.set_page_config(page_title='BioSequence Analyzer', page_icon='🧬')
@@ -11,7 +13,25 @@ st.title("🧬 BioSequence Analyzer")
 st.write("Paste a DNA Sequence below to analyze it.")
 
 # Input box
-sequence_input = st.text_area('Enter DNA Sequence', height=150, placeholder='e.g. ATGCGTACGTAGCTAGCTAGC')
+st.subheader("Input Sequence")
+input_method = st.radio("Choose input method:", ["Paste Sequence", "Upload FASTA File"])
+sequence_input = ""
+sequence_name = "Manual Input"
+
+if input_method == "Paste Sequence":
+    sequence_input = st.text_area('Enter DNA Sequence', height=150, placeholder='e.g. ATGCGTACGTAGCTAGCTAGC')
+elif input_method == "Upload FASTA File":
+    uploaded_file = st.file_uploader("Upload a FASTA file:", type=['fasta', 'fa', 'txt'])
+    if uploaded_file is not None:
+        content = uploaded_file.read().decode("utf-8")
+        records = list(SeqIO.parse(io.StringIO(content), "fasta"))
+        if len(records) == 0:
+            st.error("No Sequences found in file. Make sure it is valid Fasta File.")
+        else:
+            sequence_name = records[0].id
+            sequence_input = str(records[0].seq)
+            st.success(f"Loaded Sequence: {sequence_name}")
+            st.code(sequence_input[:100] + "..." if len(sequence_input)>100 else sequence_input)
 
 # Button
 if st.button('Analyze'):
@@ -79,7 +99,7 @@ if st.button('Analyze'):
         """
 
         st.download_button(
-            label="Download Repot as .txt",
+            label="Download Report as .txt",
             data=report,
             file_name="bio_report.txt",
             mime="text/plain"
